@@ -1,5 +1,4 @@
-
-// index.js con resúmenes semanales y alertas por gasto alto ✅
+// index.js usando directamente google-credentials.json ✅
 const express = require("express");
 const bodyParser = require("body-parser");
 const { google } = require("googleapis");
@@ -16,7 +15,7 @@ app.use(bodyParser.json());
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: "google-credentials.json",
+  credentials: require("./google-credentials.json"),
   scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 const sheets = google.sheets({ version: "v4", auth });
@@ -80,11 +79,9 @@ async function obtenerResumen(tipo) {
 }
 
 function formatearResumen(resumen, periodo = "semana") {
-  let msg = `📊 Resumen de la ${periodo}:
-Total: $${resumen.total.toLocaleString("es-CL")}`;
+  let msg = `📊 Resumen de la ${periodo}:\nTotal: $${resumen.total.toLocaleString("es-CL")}`;
   for (const [cat, val] of Object.entries(resumen.categorias)) {
-    msg += `
-• ${cat}: $${val.toLocaleString("es-CL")}`;
+    msg += `\n• ${cat}: $${val.toLocaleString("es-CL")}`;
   }
   return msg;
 }
@@ -110,8 +107,7 @@ app.post("/webhook", async (req, res) => {
 
       const resumenHoy = await obtenerResumen("hoy");
       if (resumenHoy.total > 50000) {
-        const twiml = `<Response><Message>⚠️ Hoy llevas gastado $${resumenHoy.total.toLocaleString("es-CL")}
-${formatearResumen(resumenHoy, "día")}</Message></Response>`;
+        const twiml = `<Response><Message>⚠️ Hoy llevas gastado $${resumenHoy.total.toLocaleString("es-CL")}\n${formatearResumen(resumenHoy, "día")}</Message></Response>`;
         return res.send(twiml);
       }
 
@@ -155,3 +151,4 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`✅ Bot corriendo en http://localhost:${port}`);
 });
+
